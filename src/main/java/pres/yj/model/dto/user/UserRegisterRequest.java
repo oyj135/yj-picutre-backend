@@ -1,4 +1,4 @@
-package pres.yj.model.dto;
+package pres.yj.model.dto.user;
 
 import lombok.Data;
 
