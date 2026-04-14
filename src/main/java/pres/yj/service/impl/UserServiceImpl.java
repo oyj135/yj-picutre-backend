@@ -1,6 +1,8 @@
 package pres.yj.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,12 +13,17 @@ import pres.yj.constant.UserConstant;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
 import pres.yj.model.dto.user.UserLoginRequest;
+import pres.yj.model.dto.user.UserQueryRequest;
 import pres.yj.model.entity.User;
 import pres.yj.model.enums.UserRoleEnum;
 import pres.yj.model.vo.LoginUserVO;
+import pres.yj.model.vo.UserVO;
 import pres.yj.service.UserService;
 import pres.yj.mapper.UserMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
 * @author OuYJ
@@ -180,6 +187,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return true;
     }
 
+    /**
+     * 获取脱敏后的用户信息
+     *
+     * @param user 用户信息
+     * @return 脱敏后的用户信息
+     */
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            log.info("getUserVO failed, user is null");
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        // 脱敏
+        BeanUtil.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    /**
+     * 获取脱敏后的用户信息列表
+     *
+     * @param userList 用户信息列表
+     * @return 脱敏后的用户信息列表
+     */
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            log.info("getUserVOList failed, userList is empty");
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).toList();
+    }
+
+    /**
+     * 获取查询条件
+     *
+     * @param userQueryRequest 查询条件
+     * @return 查询条件
+     */
+    @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        // 获取请求参数
+        Long id = userQueryRequest.getId();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        // 创建查询条件
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
+        queryWrapper.eq(StrUtil.isNotBlank(userRole), "userRole", userRole);
+        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
+        queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
+        queryWrapper.like(StrUtil.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        return queryWrapper;
+    }
 
 }
 
