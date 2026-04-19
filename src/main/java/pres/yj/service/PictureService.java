@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
 import pres.yj.model.dto.picture.PictureQueryRequest;
+import pres.yj.model.dto.picture.PictureReviewRequest;
 import pres.yj.model.dto.picture.PictureUploadRequest;
 import pres.yj.model.dto.vo.PictureVO;
 import pres.yj.model.entity.Picture;
@@ -63,4 +64,15 @@ public interface PictureService extends IService<Picture> {
      * @param picture
      */
     void validPicture(Picture picture);
+
+    /**
+     * 图片审核
+     *
+     * @param pictureReviewRequest
+     * @param loginUser
+     */
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
+
+
+    void fillReviewParams(Picture picture, User loginUser);
 }
