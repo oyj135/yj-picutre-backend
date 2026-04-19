@@ -8,15 +8,22 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
-import org.springframework.web.multipart.MultipartFile;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
 import pres.yj.exception.ThrowUtils;
-import pres.yj.manager.FileManager;
+import pres.yj.manager.upload.FilePictureUpload;
+import pres.yj.manager.upload.PictureUploadTemplate;
+import pres.yj.manager.upload.UrlPictureUpload;
 import pres.yj.model.dto.file.UploadPictureResult;
 import pres.yj.model.dto.picture.PictureQueryRequest;
 import pres.yj.model.dto.picture.PictureReviewRequest;
+import pres.yj.model.dto.picture.PictureUploadByBatchRequest;
 import pres.yj.model.dto.picture.PictureUploadRequest;
 import pres.yj.model.dto.vo.PictureVO;
 import pres.yj.model.entity.Picture;
@@ -27,6 +34,7 @@ import pres.yj.mapper.PictureMapper;
 import org.springframework.stereotype.Service;
 import pres.yj.service.UserService;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,11 +47,15 @@ import java.util.stream.Collectors;
  * @createDate 2026-04-15 17:36:45
  */
 @Service
+@Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
     @Resource
-    private FileManager fileManager;
+    private FilePictureUpload filePictureUpload;
+
+    @Resource
+    private UrlPictureUpload urlPictureUpload;
 
     @Resource
     private UserService userService;
@@ -52,7 +64,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      * 上传图片
      */
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
         // 效验参数
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
         // 用于判断是新增还是更新图片
@@ -70,11 +82,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 上传图片，得到信息
         // 按照用户 id 划分目录
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
-        // 构造要入库的图片信息
+        // 根据 inputSource 判断是上传文件还是url链接
+        PictureUploadTemplate pictureUploadTemplate = filePictureUpload;
+        // 如果是url链接，则使用 urlPictureUpload
+        if (inputSource instanceof String) {
+            pictureUploadTemplate = urlPictureUpload;
+        }
+        UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
+        // 封装 Picture
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
-        picture.setName(uploadPictureResult.getPicName());
+        // 支持从外层获取名称
+        String picName = uploadPictureResult.getPicName();
+        if (pictureUploadRequest != null  && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
+            picName = pictureUploadRequest.getPicName();
+        }
+        picture.setName(picName);
         picture.setPicSize(uploadPictureResult.getPicSize());
         picture.setPicWidth(uploadPictureResult.getPicWidth());
         picture.setPicHeight(uploadPictureResult.getPicHeight());
@@ -267,7 +290,72 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
     }
 
+    /**
+     * 批量上传图片
+     * @param pictureUploadByBatchRequest 批量抓取请求封装类
+     * @param loginUser 登录用户
+     * @return 批量上传图片数量
+     */
+    @Override
+    public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+        // 效验参数
+        String searchText = pictureUploadByBatchRequest.getSearchText();
+        Integer count = pictureUploadByBatchRequest.getCount();
+        ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多30条");
+        // 名称前缀,默认等于搜索关键词
+        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        if (StrUtil.isBlank(namePrefix)) {
+            namePrefix = searchText;
+        }
+        // 抓取内容
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        Document document = null;
+        try {
+            document = Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("抓取内容失败", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+        }
+        // 解析内容
+        Element div = document.getElementsByClass("dgControl").first();
+        if (ObjUtil.isEmpty(div)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取图片元素失败");
+        }
+        Elements imgList = div.select("img.mimg");
+        // 遍历元素,依次处理图片
+        int uploadCount = 0;
+        for (Element element : imgList) {
+            String src = element.attr("src");
+            if (StrUtil.isBlank(src)) {
+                log.info("当前链接地址为空，已经跳过：{}", src);
+                continue;
+            }
+            // 处理图片地址
+            int questionMarkIndex = src.indexOf("?");
+            if (questionMarkIndex > -1) {
+                src = src.substring(0, questionMarkIndex);
+            }
+            // 封装请求
+            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            pictureUploadRequest.setFileUrl(src);
+            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
 
+            try {
+                // 上传图片
+                PictureVO pictureVO = this.uploadPicture(src, pictureUploadRequest, loginUser);
+                log.info("上传图片成功：{}", pictureVO.getId());
+                uploadCount++;
+            } catch (Exception e) {
+                log.error("上传图片失败：", e);
+                continue;
+            }
+            if (uploadCount >= count) {
+                break;
+            }
+
+        }
+        return uploadCount;
+    }
 }
 
 

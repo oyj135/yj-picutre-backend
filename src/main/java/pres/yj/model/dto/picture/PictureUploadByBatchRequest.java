@@ -8,26 +8,27 @@ import java.io.Serializable;
 /**
  * @author <a href="https://www.ouyangjian.com/">YJ.渔夫.星辰</a>
  * @Date 2026/4/15
- * 图片上传请求封装类
+ * 批量导入图片请求
  */
 
 @Data
-public class PictureUploadRequest implements Serializable {
+public class PictureUploadByBatchRequest implements Serializable {
 
     /**
-     * 图片 id（用于修改）
+     * 搜索文本
      */
-    private Long id;
+    private  String searchText;
 
     /**
-     * 图片 url
+     * 抓取数量
      */
-    private String fileUrl;
+    private final Integer count = 10;
 
     /**
-     * 图片名称
+     * 图片文件名前缀
      */
-    private String picName;
+    private String namePrefix;
+
 
     @Serial
     private static final long serialVersionUID = 1L;

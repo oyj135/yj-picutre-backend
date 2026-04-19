@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
 import pres.yj.model.dto.picture.PictureQueryRequest;
 import pres.yj.model.dto.picture.PictureReviewRequest;
+import pres.yj.model.dto.picture.PictureUploadByBatchRequest;
 import pres.yj.model.dto.picture.PictureUploadRequest;
 import pres.yj.model.dto.vo.PictureVO;
 import pres.yj.model.entity.Picture;
@@ -22,12 +23,12 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      *
-     * @param multipartFile
-     * @param pictureUploadRequest
-     * @param loginUser
-     * @return
+     * @param inputSource 输入源
+     * @param pictureUploadRequest 图片上传请求
+     * @param loginUser 登录用户
+     * @return 图片封装
      */
-    PictureVO uploadPicture(MultipartFile multipartFile,
+    PictureVO uploadPicture(Object inputSource,
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
@@ -74,5 +75,21 @@ public interface PictureService extends IService<Picture> {
     void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
 
 
+    /**
+     * 封装审核参数
+     *
+     * @param picture   图片实体类
+     * @param loginUser 登录用户
+     */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 批量抓取图片
+     *
+     * @param pictureUploadByBatchRequest 批量抓取请求封装类
+     * @param loginUser 登录用户
+     * @return 图片数量
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
+
 }
