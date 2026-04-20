@@ -1,4 +1,4 @@
-package pres.yj.model.dto.vo;
+package pres.yj.model.vo;
 
 import lombok.Data;
 

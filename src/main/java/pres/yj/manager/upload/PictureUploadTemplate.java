@@ -1,5 +1,6 @@
 package pres.yj.manager.upload;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
@@ -10,7 +11,9 @@ import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,7 +73,22 @@ public abstract class PictureUploadTemplate {
 
             // 4. 上传图片到对象存储
             PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
+            // 获取图片信息，封装返回结果
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            // 获取到图片处理结果
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            if (CollUtil.isNotEmpty(objectList)) {
+                // 获取压缩之后得到的文件信息
+                CIObject compressedCiObject = objectList.get(0);
+                // 缩略图默认等于压缩图
+                CIObject thumbnailCioObject = compressedCiObject;
+                if (objectList.size() > 1) {
+                    thumbnailCioObject = objectList.get(1);
+                }
+                // 封装压缩之后的图片信息
+                return buildResult(originFilename, compressedCiObject, thumbnailCioObject);
+            }
             // 5. 封装返回结果
             return buildResult(originFilename, file, uploadPath, imageInfo);
         } catch (Exception e) {
@@ -80,6 +98,27 @@ public abstract class PictureUploadTemplate {
             // 6. 清理临时文件
             deleteTempFile(file);
         }
+    }
+
+    /**
+     * 封装压缩图片后的返回结果
+     */
+    private UploadPictureResult buildResult(String originFilename, CIObject ciObject, CIObject thumbnailCioObject) {
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
+        int picWidth = ciObject.getWidth();
+        int picHeight = ciObject.getHeight();
+        double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
+        uploadPictureResult.setPicName(FileUtil.mainName(originFilename));
+        uploadPictureResult.setPicWidth(picWidth);
+        uploadPictureResult.setPicHeight(picHeight);
+        uploadPictureResult.setPicScale(picScale);
+        uploadPictureResult.setPicFormat(ciObject.getFormat());
+        uploadPictureResult.setPicSize(ciObject.getSize().longValue());
+        // 设置原图地址
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + ciObject.getKey());
+        // 设置缩略图地址
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCioObject.getKey());
+        return uploadPictureResult;
     }
 
     /**

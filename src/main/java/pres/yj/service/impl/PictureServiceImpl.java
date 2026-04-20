@@ -14,9 +14,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
 import pres.yj.exception.ThrowUtils;
+import pres.yj.manager.CosManager;
 import pres.yj.manager.upload.FilePictureUpload;
 import pres.yj.manager.upload.PictureUploadTemplate;
 import pres.yj.manager.upload.UrlPictureUpload;
@@ -25,7 +27,7 @@ import pres.yj.model.dto.picture.PictureQueryRequest;
 import pres.yj.model.dto.picture.PictureReviewRequest;
 import pres.yj.model.dto.picture.PictureUploadByBatchRequest;
 import pres.yj.model.dto.picture.PictureUploadRequest;
-import pres.yj.model.dto.vo.PictureVO;
+import pres.yj.model.vo.PictureVO;
 import pres.yj.model.entity.Picture;
 import pres.yj.model.entity.User;
 import pres.yj.model.enums.PictureReviewStatusEnum;
@@ -60,6 +62,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Resource
     private UserService userService;
 
+    @Resource
+    private CosManager cosManager;
+
     /**
      * 上传图片
      */
@@ -92,6 +97,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 封装 Picture
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         // 支持从外层获取名称
         String picName = uploadPictureResult.getPicName();
         if (pictureUploadRequest != null  && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
@@ -115,10 +121,17 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
 
         boolean result = this.saveOrUpdate(picture);
+        // todo 如果是更新操作，需要删除旧图片
+        if (pictureId != null) {
+            this.clearPictureFile(picture);
+        }
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
         return PictureVO.objToVo(picture);
     }
 
+    /**
+     * 获取图片封装类
+     */
     @Override
     public PictureVO getPictureVO(Picture picture, HttpServletRequest request) {
         // 对象转封装类
@@ -355,6 +368,32 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         }
         return uploadCount;
+    }
+
+    /**
+     * 清理图片文件
+     * @param oldPicture 旧图片
+     */
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // 删除图片
+        cosManager.deleteObject(pictureUrl);
+        // 删除缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
+
     }
 }
 

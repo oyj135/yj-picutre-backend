@@ -1,10 +1,9 @@
-package pres.yj.model.dto.vo;
+package pres.yj.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 import pres.yj.model.entity.Picture;
-import pres.yj.model.vo.UserVO;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -28,6 +27,11 @@ public class PictureVO implements Serializable {
      * 图片 url
      */
     private String url;
+
+    /**
+     * 缩略图 url
+     */
+    private String thumbnailUrl;
 
     /**
      * 图片名称

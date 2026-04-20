@@ -4,12 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.multipart.MultipartFile;
 import pres.yj.model.dto.picture.PictureQueryRequest;
 import pres.yj.model.dto.picture.PictureReviewRequest;
 import pres.yj.model.dto.picture.PictureUploadByBatchRequest;
 import pres.yj.model.dto.picture.PictureUploadRequest;
-import pres.yj.model.dto.vo.PictureVO;
+import pres.yj.model.vo.PictureVO;
 import pres.yj.model.entity.Picture;
 import pres.yj.model.entity.User;
 
@@ -92,4 +91,10 @@ public interface PictureService extends IService<Picture> {
      */
     Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
 
+    /**
+     * 清理图片文件
+     *
+     * @param oldPicture 图片实体类
+     */
+    void clearPictureFile(Picture oldPicture);
 }

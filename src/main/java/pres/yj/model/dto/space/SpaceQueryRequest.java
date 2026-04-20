@@ -1,0 +1,39 @@
+package pres.yj.model.dto.space;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import pres.yj.common.PageRequest;
+
+import java.io.Serializable;
+
+/**
+ * @author <a href="https://www.ouyangjian.com/">YJ.渔夫.星辰</a>
+ * @Date 2026/4/18
+ * 查询请求
+ */
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class SpaceQueryRequest extends PageRequest implements Serializable {
+
+    /**
+     * id
+     */
+    private Long id;
+
+    /**
+     * 用户 id
+     */
+    private Long userId;
+
+    /**
+     * 空间名称
+     */
+    private String spaceName;
+
+    /**
+     * 空间级别：0-普通版 1-专业版 2-旗舰版
+     */
+    private Integer spaceLevel;
+
+    private static final long serialVersionUID = 1L;
+}
