@@ -35,7 +35,6 @@ import pres.yj.utils.ResultUtils;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -205,7 +204,7 @@ public class PictureController {
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         // 空间权限效验
         Long spaceId = pictureQueryRequest.getSpaceId();
-        if (spaceId != null) {
+        if (spaceId == null) {
             // 公开图库
             // 普通用户默认只能看到审核通过的数据
             pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
@@ -240,9 +239,23 @@ public class PictureController {
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        // 普通用户默认只能看到审核通过的数据
-        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-
+        // 空间权限效验
+        Long spaceId = pictureQueryRequest.getSpaceId();
+        if (spaceId == null) {
+            // 公开图库
+            // 普通用户默认只能看到审核通过的数据
+            pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+            pictureQueryRequest.setNullSpaceId(true);
+        } else {
+            // 私有图库
+            // 获取当前登录用户信息
+            User loginUser = userService.getLoginUser(request);
+            Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无空间权限");
+            }
+        }
         // 查询缓存，没有再查询数据库
         // 构建缓存 key
         String queryCondition = JSONUtil.toJsonStr(pictureQueryRequest);
@@ -250,19 +263,19 @@ public class PictureController {
         String cacheKey = String.format("oyjpicture:listPictureVOByPageWithCache:%s", hashKey);
         // 多级缓存
         // 1. 先从本地缓存查询
-        String CachedValue = LOCAL_CACHE.getIfPresent(cacheKey);
-        if (CachedValue != null) {
+        String cachedValue = LOCAL_CACHE.getIfPresent(cacheKey);
+        if (cachedValue != null) {
             // 如果缓存命中，则直接返回缓存数据
-            Page<PictureVO> cachePage = JSONUtil.toBean(CachedValue, Page.class);
+            Page<PictureVO> cachePage = JSONUtil.toBean(cachedValue, Page.class);
             return ResultUtils.success(cachePage);
         }
         // 2. 本地缓存未命中，查询redis 分布式缓存
         ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
-        CachedValue = opsForValue.get(cacheKey);
-        if (CachedValue != null) {
+        cachedValue = opsForValue.get(cacheKey);
+        if (cachedValue != null) {
             // 如果缓存命中, 更新本地缓存，返回结果
-            LOCAL_CACHE.put(cacheKey, CachedValue);
-            Page<PictureVO> cachePage = JSONUtil.toBean(CachedValue, Page.class);
+            LOCAL_CACHE.put(cacheKey, cachedValue);
+            Page<PictureVO> cachePage = JSONUtil.toBean(cachedValue, Page.class);
             return ResultUtils.success(cachePage);
         }
         // 3. 查询数据库

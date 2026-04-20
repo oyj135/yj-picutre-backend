@@ -45,9 +45,10 @@ public class SpaceController {
     @Resource
     private SpaceService spaceService;
 
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
-
+    /**
+     * 添加空间
+     */
+    @PostMapping("/add")
     public BaseResponse<Long> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceAddRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
