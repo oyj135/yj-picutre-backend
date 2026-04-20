@@ -120,7 +120,7 @@ public class Picture implements Serializable {
     /**
      * 空间 id
      */
-    private Integer spaceId;
+    private Long spaceId;
 
 
     @Serial

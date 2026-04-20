@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
-import pres.yj.model.dto.picture.PictureQueryRequest;
-import pres.yj.model.dto.picture.PictureReviewRequest;
-import pres.yj.model.dto.picture.PictureUploadByBatchRequest;
-import pres.yj.model.dto.picture.PictureUploadRequest;
+import pres.yj.model.dto.picture.*;
 import pres.yj.model.vo.PictureVO;
 import pres.yj.model.entity.Picture;
 import pres.yj.model.entity.User;
@@ -97,4 +94,29 @@ public interface PictureService extends IService<Picture> {
      * @param oldPicture 图片实体类
      */
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 删除图片
+     *
+     * @param pictureId 图片id
+     * @param loginUser 登录用户
+     */
+    void deletePicture(long pictureId, User loginUser);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest 图片编辑请求封装类
+     * @param loginUser 登录用户
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
+     * 检查空间图片权限
+     *
+     * @param loginUser 登录用户
+     * @param picture 图片实体类
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
 }
