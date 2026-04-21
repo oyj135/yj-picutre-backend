@@ -10,17 +10,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pres.yj.annotation.AuthCheck;
+import pres.yj.api.imageSearch.ImageSearchApiFacade;
+import pres.yj.api.imageSearch.model.ImageSearchResult;
 import pres.yj.common.BaseResponse;
 import pres.yj.constant.UserConstant;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
+import pres.yj.exception.ThrowUtils;
 import pres.yj.manager.CosManager;
+import pres.yj.model.dto.picture.SearchPictureByPictureRequest;
+import pres.yj.model.entity.Picture;
+import pres.yj.service.PictureService;
 import pres.yj.utils.ResultUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * @author <a href="https://www.ouyangjian.com/">YJ.渔夫.星辰</a>
@@ -34,6 +41,9 @@ public class FileController {
 
     @Resource
     private CosManager cosManager;
+
+    @Resource
+    private PictureService pictureService;
 
     /**
      * 文件上传
@@ -115,5 +125,27 @@ public class FileController {
             }
         }
     }
+
+
+    /**
+     * 以图搜图
+     *
+     * @param searchPictureByPictureRequest 图片搜索请求
+     * @return 图片搜索结果
+     */
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        // 获取图片 ID
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        // 获取图片
+        Picture oldPicture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 搜索图片
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
+        return ResultUtils.success(resultList);
+    }
+
 
 }
