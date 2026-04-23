@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.transaction.annotation.Transactional;
+import pres.yj.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import pres.yj.model.dto.picture.*;
 import pres.yj.model.vo.PictureVO;
 import pres.yj.model.entity.Picture;
@@ -140,4 +141,13 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser 登录用户
      */
     void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+
+    /**
+     * 创建扩图任务
+     *
+     * @param createPictureOutPaintingTaskRequest 创建图片外画任务请求封装类
+     * @param loginUser 登录用户
+     */
+    CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 }
