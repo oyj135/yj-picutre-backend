@@ -11,16 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 import pres.yj.common.BaseResponse;
 import pres.yj.exception.ErrorCode;
 import pres.yj.exception.ThrowUtils;
-import pres.yj.model.dto.space.analyze.SpaceCategoryAnalyzeRequest;
-import pres.yj.model.dto.space.analyze.SpaceRankAnalyzeRequest;
-import pres.yj.model.dto.space.analyze.SpaceUsageAnalyzeRequest;
-import pres.yj.model.dto.space.analyze.SpaceUserAnalyzeRequest;
+import pres.yj.model.dto.space.analyze.*;
 import pres.yj.model.entity.Picture;
 import pres.yj.model.entity.Space;
 import pres.yj.model.entity.User;
-import pres.yj.model.vo.space.analyze.SpaceCategoryAnalyzeResponse;
-import pres.yj.model.vo.space.analyze.SpaceUsageAnalyzeResponse;
-import pres.yj.model.vo.space.analyze.SpaceUserAnalyzeResponse;
+import pres.yj.model.vo.space.analyze.*;
 import pres.yj.service.PictureService;
 import pres.yj.service.SpaceAnalyzeService;
 import pres.yj.service.UserService;
@@ -68,6 +63,30 @@ public class SpaceAnalyzeController {
         List<SpaceCategoryAnalyzeResponse> resultList = spaceAnalyzeService.getSpaceCategoryAnalyze(spaceCategoryAnalyzeRequest, loginUser);
         return ResultUtils.success(resultList);
     }
+
+    /**
+     * 获取空间标签分析
+     */
+    @PostMapping("/tag")
+    public BaseResponse<List<SpaceTagAnalyzeResponse>> getSpaceTagAnalyze(@RequestBody SpaceTagAnalyzeRequest spaceTagAnalyzeRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(spaceTagAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        List<SpaceTagAnalyzeResponse> resultList = spaceAnalyzeService.getSpaceTagAnalyze(spaceTagAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
+
+    /**
+     * 获取空间图片大小分析
+     */
+    @PostMapping("/size")
+    public BaseResponse<List<SpaceSizeAnalyzeResponse>> getSpaceSizeAnalyze(@RequestBody SpaceSizeAnalyzeRequest spaceSizeAnalyzeRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(spaceSizeAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        List<SpaceSizeAnalyzeResponse> resultList = spaceAnalyzeService.getSpaceSizeAnalyze(spaceSizeAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
+
+
 
     /**
      * 获取用户上传行为分析

@@ -6,6 +6,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
 import pres.yj.exception.ThrowUtils;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
  * @author <a href="https://www.ouyangjian.com/">YJ.渔夫.星辰</a>
  * @Date 2026/4/28
  */
+@Service
 public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space> implements SpaceAnalyzeService {
 
     @Resource
