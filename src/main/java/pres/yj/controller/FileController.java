@@ -125,27 +125,4 @@ public class FileController {
             }
         }
     }
-
-
-    /**
-     * 以图搜图
-     *
-     * @param searchPictureByPictureRequest 图片搜索请求
-     * @return 图片搜索结果
-     */
-    @PostMapping("/search/picture")
-    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
-        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
-        // 获取图片 ID
-        Long pictureId = searchPictureByPictureRequest.getPictureId();
-        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
-        // 获取图片
-        Picture oldPicture = pictureService.getById(pictureId);
-        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 搜索图片
-        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
-        return ResultUtils.success(resultList);
-    }
-
-
 }

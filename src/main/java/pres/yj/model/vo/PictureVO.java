@@ -5,7 +5,9 @@ import lombok.Data;
 import org.springframework.beans.BeanUtils;
 import pres.yj.model.entity.Picture;
 
+import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -113,7 +115,12 @@ public class PictureVO implements Serializable {
      */
     private String picColor;
 
+    /**
+     * 权限列表
+     */
+    private List<String> permissionList = new ArrayList<>();
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

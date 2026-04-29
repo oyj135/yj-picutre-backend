@@ -4,8 +4,11 @@ import lombok.Data;
 import org.springframework.beans.BeanUtils;
 import pres.yj.model.entity.Space;
 
+import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author <a href="https://www.ouyj.com/">YJ.渔夫.星辰</a>
@@ -74,6 +77,19 @@ public class SpaceVO implements Serializable {
      */
     private UserVO user;
 
+    /**
+     * 空间类型：0-私有 1-团队
+     */
+    private Integer spaceType;
+
+    /**
+     * 权限列表
+     */
+    private List<String> permissionList = new ArrayList<>();
+
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
