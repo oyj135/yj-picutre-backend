@@ -19,6 +19,8 @@ import pres.yj.annotation.AuthCheck;
 import pres.yj.api.aliyunai.AliYunAiApi;
 import pres.yj.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import pres.yj.api.aliyunai.model.GetOutPaintingTaskResponse;
+import pres.yj.api.imageSearch.ImageSearchApiFacade;
+import pres.yj.api.imageSearch.model.ImageSearchResult;
 import pres.yj.common.BaseResponse;
 import pres.yj.common.DeleteRequest;
 import pres.yj.constant.UserConstant;
@@ -241,7 +243,7 @@ public class PictureController {
             // 私有图库
             //权限效验
             boolean hasPermission = StpKit.SPACE.hasPermission(SpaceUserPermissionConstant.PICTURE_VIEW);
-            ThrowUtils.throwIf(!hasPermission, ErrorCode.NO_AUTH_ERROR);
+            ThrowUtils.throwIf(!hasPermission, ErrorCode.NO_AUTH_ERROR, "无空间权限");
             // 已经改为使用注解鉴权
 //            // 获取当前登录用户信息
 //            User loginUser = userService.getLoginUser(request);
@@ -379,6 +381,22 @@ public class PictureController {
         int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return ResultUtils.success(uploadCount);
     }
+
+    /**
+     * 以图搜图
+     */
+    @PostMapping("/search/picture")
+//    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        Picture oldPicture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
+        return ResultUtils.success(resultList);
+    }
+
 
     /**
      * 根据颜色搜索图片
