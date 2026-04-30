@@ -50,6 +50,21 @@ public class User implements Serializable {
     private String userRole;
 
     /**
+     * vip到期时间
+     */
+    private Date vipExpireTime;
+
+    /**
+     * vip兑换码
+     */
+    private String vipCode;
+
+    /**
+     * vip编号
+     */
+    private Long vipNumber;
+
+    /**
      * 编辑时间
      */
     private Date editTime;

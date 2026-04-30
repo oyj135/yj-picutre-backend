@@ -143,7 +143,7 @@ public class UserController {
     }
 
     /**
-     * 更新用户
+     * 更新用户（仅管理员可用）
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -153,7 +153,27 @@ public class UserController {
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
+        boolean result = this.userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新个人信息（本人可用）
+     */
+    @PostMapping("/update/my")
+    public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateRequest userUpdateRequest,
+                                               HttpServletRequest request) {
+        if (userUpdateRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 只能修改自己的信息
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateRequest, user);
+        user.setId(loginUser.getId());
+        boolean result = this.userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
@@ -175,5 +195,24 @@ public class UserController {
         List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
+    }
+
+    /**
+     * 兑换会员
+     *
+     * @param vipExchangeRequest 兑换会员请求参数
+     * @param request            请求对象
+     * @return 兑换结果
+     */
+    @PostMapping("/exchange/vip")
+    public BaseResponse<Boolean> exchangeVip(@RequestBody VipExchangeRequest vipExchangeRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(vipExchangeRequest == null, ErrorCode.PARAMS_ERROR, "参数错误");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        String vipCode = vipExchangeRequest.getVipCode();
+
+        //会员兑换
+        boolean result = userService.exchangeVip(loginUser, vipCode);
+        return ResultUtils.success(result);
     }
 }

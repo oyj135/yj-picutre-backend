@@ -100,4 +100,13 @@ public interface UserService extends IService<User> {
      */
     boolean isAdmin(User user);
 
+    /**
+     * 兑换会员
+     *
+     * @param loginUser
+     * @param vipCode
+     * @return
+     */
+    boolean exchangeVip(User loginUser, String vipCode);
+
 }

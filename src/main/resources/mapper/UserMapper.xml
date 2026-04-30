@@ -16,10 +16,13 @@
             <result property="createTime" column="createTime" />
             <result property="updateTime" column="updateTime" />
             <result property="isDelete" column="isDelete" />
+            <result property="vipExpireTime" column="vipExpireTime" />
+            <result property="vipCode" column="vipCode" />
+            <result property="vipNumber" column="vipNumber" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,userAccount,userPassword,userName,userAvatar,userProfile,
+        id,userAccount,userPassword,vipExpireTime,vipCode,vipNumber,userName,userAvatar,userProfile,
         userRole,editTime,createTime,updateTime,isDelete
     </sql>
 </mapper>
