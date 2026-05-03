@@ -1,5 +1,6 @@
 package pres.yj.api.imageSearch.sub;
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -19,8 +20,8 @@ public class GetImagePageUrlApi {
     /**
      * 获取图片页面地址
      *
-     * @param imageUrl
-     * @return
+     * @param imageUrl 图片地址
+     * @return 图片页面地址
      */
     public static String getImagePageUrl(String imageUrl) {
         // 1. 准备请求参数
@@ -37,6 +38,7 @@ public class GetImagePageUrlApi {
         try {
             // 2. 发送 POST 请求到百度接口
             HttpResponse response = HttpRequest.post(url)
+                    .header("acs-token", RandomUtil.randomString(1))
                     .form(formData)
                     .timeout(5000)
                     .execute();
@@ -53,6 +55,9 @@ public class GetImagePageUrlApi {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "接口调用失败");
             }
             Map<String, Object> data = (Map<String, Object>) result.get("data");
+            if (data == null) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "未找到图片信息");
+            }
             String rawUrl = (String) data.get("url");
             // 对 URL 进行解码
             String searchResultUrl = URLUtil.decode(rawUrl, StandardCharsets.UTF_8);

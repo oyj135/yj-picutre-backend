@@ -369,8 +369,12 @@ public class PictureController {
         return ResultUtils.success(true);
     }
 
+
     /**
-     * 批量抓取图片（仅管理员可用）
+     * 图片批量上传 （仅管理员可用）
+     * @param pictureUploadByBatchRequest 图片上传请求
+     * @param request 请求
+     * @return 图片数量
      */
     @PostMapping("/upload/batch")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -386,14 +390,15 @@ public class PictureController {
      * 以图搜图
      */
     @PostMapping("/search/picture")
-//    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
     public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
         ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
         Long pictureId = searchPictureByPictureRequest.getPictureId();
+        log.info("接收到的pictureId: {}", pictureId);
         ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
         Picture oldPicture = pictureService.getById(pictureId);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getThumbnailUrl());
         return ResultUtils.success(resultList);
     }
 

@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -415,43 +416,54 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             log.error("抓取内容失败", e);
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
         }
-        // 解析内容
+        // 解析内容 - 获取包含高清图片链接的元素
         Element div = document.getElementsByClass("dgControl").first();
         if (ObjUtil.isEmpty(div)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取图片元素失败");
         }
-        Elements imgList = div.select("img.mimg");
+        // 修改：获取包含 m 属性的 a 标签（iusc类），从中提取高清图片链接
+        Elements iuscElements = div.select("a.iusc");
+        if (CollUtil.isEmpty(iuscElements)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未找到图片链接");
+        }
+
         // 遍历元素,依次处理图片
         int uploadCount = 0;
-        for (Element element : imgList) {
-            String src = element.attr("src");
-            if (StrUtil.isBlank(src)) {
-                log.info("当前链接地址为空，已经跳过：{}", src);
+        for (Element element : iuscElements) {
+            // 从 m 属性中获取 JSON 数据，提取 murl（高清原图链接）
+            String mAttr = element.attr("m");
+            if (StrUtil.isBlank(mAttr)) {
+                log.info("当前元素 m 属性为空，已跳过");
                 continue;
             }
-            // 处理图片地址
-            int questionMarkIndex = src.indexOf("?");
-            if (questionMarkIndex > -1) {
-                src = src.substring(0, questionMarkIndex);
-            }
-            // 封装请求
-            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
-            pictureUploadRequest.setFileUrl(src);
-            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
 
             try {
+                // 解析 JSON 获取 murl
+                JSONObject jsonObject = JSONUtil.parseObj(mAttr);
+                String highResUrl = jsonObject.getStr("murl");
+
+                if (StrUtil.isBlank(highResUrl)) {
+                    log.info("未找到高清图片链接，已跳过");
+                    continue;
+                }
+
+                // 封装请求
+                PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+                pictureUploadRequest.setFileUrl(highResUrl);
+                pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
+
                 // 上传图片
-                PictureVO pictureVO = this.uploadPicture(src, pictureUploadRequest, loginUser);
+                PictureVO pictureVO = this.uploadPicture(highResUrl, pictureUploadRequest, loginUser);
                 log.info("上传图片成功：{}", pictureVO.getId());
                 uploadCount++;
             } catch (Exception e) {
                 log.error("上传图片失败：", e);
                 continue;
             }
+
             if (uploadCount >= count) {
                 break;
             }
-
         }
         return uploadCount;
     }
