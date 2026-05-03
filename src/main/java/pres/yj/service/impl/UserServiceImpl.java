@@ -19,6 +19,7 @@ import org.springframework.util.DigestUtils;
 import pres.yj.constant.UserConstant;
 import pres.yj.exception.BusinessException;
 import pres.yj.exception.ErrorCode;
+import pres.yj.manager.auth.StpKit;
 import pres.yj.model.dto.user.UserLoginRequest;
 import pres.yj.model.dto.user.UserQueryRequest;
 import pres.yj.model.dto.user.VipCode;
@@ -37,15 +38,16 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static pres.yj.constant.UserConstant.USER_LOGIN_STATE;
+
 /**
-* @author OuYJ
-* @description 针对表【user(用户)】的数据库操作Service实现
-* @createDate 2026-04-11 17:44:07
-*/
+ * @author OuYJ
+ * @description 针对表【user(用户)】的数据库操作Service实现
+ * @createDate 2026-04-11 17:44:07
+ */
 @Slf4j
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-    implements UserService{
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Override
     public Long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -121,9 +123,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        // 保存用户登录态
-        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        // 3. 记录用户的登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        // 4. 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
         return this.getLoginUserVO(user);
+
     }
 
     /**
@@ -135,7 +141,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public User getLoginUser(HttpServletRequest request) {
         // 判断是否登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         // 未登录
         if (userObj == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -191,11 +197,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean userLogout(HttpServletRequest request) {
         // 判断是否登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         if (userObj == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "未登录");
         }
-        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
 
@@ -316,10 +322,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
             // 查找匹配的未使用兑换码
             List<VipCode> codes = JSONUtil.toList(jsonArray, VipCode.class);
-            VipCode target = codes.stream()
-                    .filter(code -> code.getCode().equals(vipCode) && !code.isHasUsed())
-                    .findFirst()
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "无效的兑换码"));
+            VipCode target = codes.stream().filter(code -> code.getCode().equals(vipCode) && !code.isHasUsed()).findFirst().orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "无效的兑换码"));
 
             // 标记为已使用
             target.setHasUsed(true);
